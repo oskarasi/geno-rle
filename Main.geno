@@ -1,8 +1,7 @@
 /// Run-length encoding for simple alphanumeric strings.
 ///
 /// Encoding scheme: each run is `<char><count>` where `char` is a single
-/// alphanumeric character and `count` is one or more decimal digits with no
-/// leading zeros (except the count itself may be any positive integer).
+/// alphanumeric character and `count` is one or more decimal digits.
 /// Example: "aaabbc" -> "a3b2c1"
 ///
 /// Empty string encodes to empty string. Decode validates the format.
@@ -14,6 +13,7 @@ func is_alnum(c: String) -> Bool
     example "Z" -> true
     example "5" -> true
     example "!" -> false
+    example " " -> false
     return (c >= "a" and c <= "z") or (c >= "A" and c <= "Z") or (c >= "0" and c <= "9")
 end func
 
@@ -38,6 +38,7 @@ func encode(s: String) -> String
     example "aaabbc" -> "a3b2c1"
     example "WWWWWWWWWWWWBWWWWWWWWWWWWBBB" -> "W12B1W12B3"
     example "abc" -> "a1b1c1"
+    example "======= " -> "=7 1"
     if length(s) == 0 then
         return ""
     end if
@@ -109,6 +110,7 @@ end func
 
 func describe(s: String) -> String
     example "aaabbc" -> "encode=a3b2c1 roundtrip=ok"
+    example "" -> "encode= roundtrip=ok"
     let encoded: String = encode(s)
     match decode(encoded) with
         | Ok(decoded) ->
@@ -121,12 +123,50 @@ func describe(s: String) -> String
     end match
 end func
 
+/// Argv-style: `encode <text>` or `decode <encoded>`.
+func run(args: List[String]) -> Result[String, String]
+    example ["encode", "aaabbc"] -> Ok("a3b2c1")
+    example ["decode", "a3b2c1"] -> Ok("aaabbc")
+    example ["decode", "a"] -> Err("missing count after character")
+    example [] -> Err("usage: encode|decode <text>")
+    example ["encode"] -> Err("usage: encode|decode <text>")
+    example ["bogus", "aa"] -> Err("usage: encode|decode <text>")
+
+    if length(args) < 2 then
+        return Err("usage: encode|decode <text>")
+    end if
+
+    let cmd: String = args[0]
+    let text: String = args[1]
+
+    if cmd == "encode" or cmd == "enc" then
+        return Ok(encode(text))
+    end if
+    if cmd == "decode" or cmd == "dec" then
+        return decode(text)
+    end if
+    return Err("usage: encode|decode <text>")
+end func
+
 @untested("entry point")
-func main() -> List[String]
-    return [
+func main() -> String
+    return join([
         describe("aaabbc"),
         describe("WWWWWWWWWWWWBWWWWWWWWWWWWBBB"),
         describe("abc"),
         describe("")
-    ]
+    ], " | ")
+end func
+
+@untested("requires --unsafe --cap env,print")
+func cli_main() -> Int
+    let args: List[String] = cli_args()
+    match run(args) with
+    | Ok(out) ->
+        print(out)
+        return 0
+    | Err(e) ->
+        print(e)
+        return 1
+    end match
 end func

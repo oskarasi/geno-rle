@@ -10,27 +10,42 @@ Each run of identical characters becomes `<char><count>`:
 |-------|---------|
 | `aaabbc` | `a3b2c1` |
 | `abc` | `a1b1c1` |
-| `W12` runs of W then B… | `W12B1…` (multi-digit counts allowed) |
+| long W/B runs | `W12B1W12B3` |
 | `` (empty) | `` |
 
-- `char` is a single alphanumeric character (`A–Z`, `a–z`, `0–9`).
-- `count` is one or more decimal digits and must be ≥ 1.
-- Encode does not validate character classes; decode does, and returns `Result[String, String]`.
+- Encode accepts any characters (including non-alnum).
+- Decode requires alphanumeric characters and counts ≥ 1; returns `Result[String, String]`.
 
-## API
+## Install
 
-- `encode(s: String) -> String`
-- `decode(s: String) -> Result[String, String]`
-- `round_trip(s: String) -> String` — encode then decode
+```bash
+pip install geno-lang
+```
 
-## Run
+## Test / run (sandboxed, no capabilities)
 
 ```bash
 geno test .
 geno run .
 ```
 
-## Layout
+Default `main()` returns a String summary of a few `describe(...)` demos.
 
-- `geno.toml` — project manifest
-- `Main.geno` — encode/decode and `main` demo
+## API
+
+- `encode(s: String) -> String`
+- `decode(s: String) -> Result[String, String]`
+- `round_trip(s: String) -> String`
+- `describe(s: String) -> String`
+- `run(args: List[String]) -> Result[String, String]` — `encode|decode <text>` (aliases `enc`/`dec`)
+
+## Optional real CLI
+
+Default sandboxed `geno run` **rejects** `--cap` unless you also pass `--unsafe` or `--json`.
+
+```bash
+geno run --unsafe --cap env,print Main.geno -- encode aaabbc
+geno run --unsafe --cap env,print Main.geno -- decode a3b2c1
+```
+
+`cli_main` is `@untested` and uses `cli_args()` / `print`; default `geno run` stays on capability-free `main`.
